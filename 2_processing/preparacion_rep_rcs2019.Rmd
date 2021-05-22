@@ -1,0 +1,106 @@
+---
+title: "Codigo de Procesamiento de Datos ELSOC 2016-19"
+author: "Cristóbal Ortiz"
+date: "20-05-2021"
+output: html_document
+--- 
+```{r Cargar librerías}
+pacman::p_load(car,
+               lmtest,
+               panelView,
+               plm,
+               pglm,
+               sjmisc,
+               sjPlot,
+               stargazer,
+               tidyverse,
+               panelr)
+```
+
+```{r Cargar base de datos}
+getwd()
+
+load("../1_input/data/ELSOC_Wide_2016_2019_v1.00_R.RData") #bbdd elsoc panel 2016-19 formato wide
+els<-elsoc_wide_2016_2019 #cambio de nombre de objeto asociado a bbdd
+
+remove("elsoc_wide_2016_2019") #eliminar bbdd duplicada
+```
+
+```{r Descripción bbdd y variables de interés}
+dim(els)
+head(els) 
+
+sjmisc::frq(els$tipo_atricion)
+sjmisc::frq(els$muestra)
+sjmisc::frq(els$tipo_caso)
+```
+```{r Filtrado y selección de variables }
+els<-els %>% dplyr::filter(tipo_atricion==1 & tipo_caso !=2) #filtrar atrición entre 2016-19 y casos c/inconsistencias mayores
+
+els_wide<-els %>% dplyr::select(idencuesta, #folio
+                               m0_sexo_w01,m0_sexo_w02,m0_sexo_w03,m0_sexo_w04, #Sexo
+                               m0_edad_w01,m0_edad_w02,m0_edad_w03,m0_edad_w04, #Edad
+                               m01_w01,m01_w02,m01_w03,m01_w04, #Educación
+                               t02_01_w01,t02_01_w02,t02_01_w03,t02_01_w04, #barrio ideal para mi
+                               t02_02_w01,t02_02_w02,t02_02_w03,t02_02_w04, #integrado al barrio
+                               t02_03_w01,t02_03_w02,t02_03_w03,t02_03_w04, #identificado con el barrio
+                               t02_04_w01,t02_04_w02,t02_04_w03,t02_04_w04, #barrio parte de mi
+                               t08_w01,t08_w02,t08_w03,t08_w04, #reputación barrial
+                               d01_01_w01,d01_01_w02,d01_01_w03,d01_01_w04) #estatus social subjetivo
+```
+
+```{r Transformar bbdd de wide a long}
+els_long <- long_panel(data = els_wide, prefix = "_w0", begin = 1, end = 4, label_location = "end",
+                      id = "idencuesta", wave = "ola")
+dim(els_long)
+head(els_long[1:6], n=3)
+```
+
+```{r Alternativo: bbdd long a wide, eval=FALSE, include=FALSE}
+els_wide2 <- widen_panel(els_long, separator = "_w0",ignore.attributes = FALSE, varying=NULL)
+dim(els_wide2)
+head(els_wide2[1:6], n=3)
+```
+
+```{r Recode de casos perdidos en NA}
+els_long[els_long==-999 | els_long==-888] <- NA
+els_wide[els_wide==-999 | els_wide==-888] <- NA
+
+sum(is.na(els_long))
+```
+
+```{r Descriptivos variables}
+class(els_long)
+
+sjmisc::frq(els_long$t02_index)
+
+library(summarytools)
+#view(dfSummary(els_long, headings = FALSE))
+```
+
+```{r Recodificacion}
+#índice de sentido de pertenencia al barrio
+els_long$t02_index<-((els_long$t02_01+els_long$t02_02+els_long$t02_03+els_long$t02_04)/4)
+
+#Recodificar de manera más simple estatus social subjetivo
+els_long$estatus<- car::recode(els_long$d01_01, "0:4='Baja'; 5='Media';6:10='Alta'")
+
+#Reputación barrial
+els_long$reputacion <- car::recode(els_long$t08, "1:2='Estigmatizado';3='Neutro';4:5='Privilegiado'")
+
+#Educación
+els_long$educacion <- car::recode(els_long$m01, "c(1,2)=1; c(3)=2;c(4,5)=3;c(6,7)=4;c(8,9,10)=5")
+
+#edad
+els_long$edad <- car::recode(els_long$m0_edad, "18:24='Joven'; 25:54='Adulto Joven';55:64='Adulto';65:75='Adulto Mayor'")
+
+```
+
+```{r Analisis de Trayectorias}
+#Generación de trayectorias
+el_wide$estatus_tray<-paste0(el_wide$estatus1,el_wide$estatus2,el_wide$estatus3,el_wide$estatus4)
+els_long$estatus_tray<-paste0(els_long$estatus)
+
+frq(els_long$estatus_tray, sort.frq = "desc")
+```
+
