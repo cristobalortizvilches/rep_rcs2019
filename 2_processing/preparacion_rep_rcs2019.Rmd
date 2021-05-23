@@ -20,7 +20,7 @@ pacman::p_load(car,
 ```{r Cargar base de datos}
 getwd()
 
-load("../1_input/data/ELSOC_Wide_2016_2019_v1.00_R.RData") #bbdd elsoc panel 2016-19 formato wide
+load("../1_input/data/original/ELSOC_Wide_2016_2019_v1.00_R.RData") #bbdd elsoc panel 2016-19 formato wide
 els<-elsoc_wide_2016_2019 #cambio de nombre de objeto asociado a bbdd
 
 remove("elsoc_wide_2016_2019") #eliminar bbdd duplicada
@@ -33,14 +33,29 @@ head(els)
 sjmisc::frq(els$tipo_atricion)
 sjmisc::frq(els$muestra)
 sjmisc::frq(els$tipo_caso)
+
+find_var(els,"quintil")
 ```
+
 ```{r Filtrado y selección de variables }
 els<-els %>% dplyr::filter(tipo_atricion==1 & tipo_caso !=2) #filtrar atrición entre 2016-19 y casos c/inconsistencias mayores
 
-els_wide<-els %>% dplyr::select(idencuesta, #folio
-                               m0_sexo_w01,m0_sexo_w02,m0_sexo_w03,m0_sexo_w04, #Sexo
-                               m0_edad_w01,m0_edad_w02,m0_edad_w03,m0_edad_w04, #Edad
-                               m01_w01,m01_w02,m01_w03,m01_w04, #Educación
+els_wide<-els %>% dplyr::select(idencuesta, #identificador,
+                               ponderador01_w01,ponderador01_w02,ponderador01_w03,ponderador01_w04, #ponderador población
+                               ponderador02_w01,ponderador02_w02,ponderador02_w03,ponderador02_w04, #ponderador sexo
+                               estrato_w01,estrato_w02,estrato_w03,estrato_w04, #ciudad
+                               region_w01,region_w02,region_w03,region_w04, #región
+                               m0_sexo_w01,m0_sexo_w02,m0_sexo_w03,m0_sexo_w04, #sexo
+                               m0_edad_w01,m0_edad_w02,m0_edad_w03,m0_edad_w04, #edad
+                               m01_w01,m01_w02,m01_w03,m01_w04, #educación
+                               t11_01_w01,t11_01_w02,t11_01_w03,t11_01_w04, #frec problema por ruidos
+                               t11_02_w01,t11_02_w02,t11_02_w03,t11_02_w04, #frec problemas por mascotas
+                               t11_03_w01,t11_03_w02,t11_03_w03,t11_03_w04, #frec amenzadas, insultos y ofensas
+                               t11_04_w01,t11_04_w02,t11_04_w03,t11_04_w04, #frec problemas por basura
+                               t03_01_w01,t03_01_w02,t03_01_w03,t03_01_w04, #vecinos amistosos
+                               t03_02_w01,t03_02_w02,t03_02_w03,t03_02_w04, #vecinos sociables
+                               t03_03_w01,t03_03_w02,t03_03_w03,t03_03_w04, #vecinos cordiales
+                               t03_04_w01,t03_04_w02,t03_04_w03,t03_04_w04, #vecinos colaboradores
                                t02_01_w01,t02_01_w02,t02_01_w03,t02_01_w04, #barrio ideal para mi
                                t02_02_w01,t02_02_w02,t02_02_w03,t02_02_w04, #integrado al barrio
                                t02_03_w01,t02_03_w02,t02_03_w03,t02_03_w04, #identificado con el barrio
@@ -64,43 +79,106 @@ head(els_wide2[1:6], n=3)
 
 ```{r Recode de casos perdidos en NA}
 els_long[els_long==-999 | els_long==-888] <- NA
-els_wide[els_wide==-999 | els_wide==-888] <- NA
+#els_wide[els_wide==-999 | els_wide==-888] <- NA
 
 sum(is.na(els_long))
 ```
 
-```{r Descriptivos variables}
-class(els_long)
-
-sjmisc::frq(els_long$t02_index)
-
-library(summarytools)
-#view(dfSummary(els_long, headings = FALSE))
-```
-
 ```{r Recodificacion}
 #índice de sentido de pertenencia al barrio
-els_long$t02_index<-((els_long$t02_01+els_long$t02_02+els_long$t02_03+els_long$t02_04)/4)
+els_long$spb <- with(els_long, c(t02_01+t02_02+t02_03+t02_04)/4)
 
-#Recodificar de manera más simple estatus social subjetivo
-els_long$estatus<- car::recode(els_long$d01_01, "0:4='Baja'; 5='Media';6:10='Alta'")
+els_long$spb_rec <- factor(with(els_long, case_when(spb < 2 ~ 1,
+                                                        spb < 3 ~ 2,
+                                                        spb < 4 ~ 3,
+                                                        spb <= 5 ~ 4)),
+                                  labels = c('Muy Bajo','Bajo','Medio', 'Alto'))
+attr(els_long$spb_rec, which = 'label') <- 'Indice Sentido de Pertenencia al Barrio'
+sjmisc::frq(els_long$spb_rec)
 
-#Reputación barrial
-els_long$reputacion <- car::recode(els_long$t08, "1:2='Estigmatizado';3='Neutro';4:5='Privilegiado'")
+#índice sociabilidad barrial #t03_0
+els_long$soc <- with(els_long, c(t03_01+t03_02+t03_03+t03_04)/4)
 
-#Educación
-els_long$educacion <- car::recode(els_long$m01, "c(1,2)=1; c(3)=2;c(4,5)=3;c(6,7)=4;c(8,9,10)=5")
+els_long$soc_rec <- factor(with(els_long, case_when(soc < 3 ~ 3,
+                                                        soc < 4 ~ 2,
+                                                        soc <= 5 ~ 1)),
+                                   labels = c('Alta', 'Media','Baja' ))
 
-#edad
-els_long$edad <- car::recode(els_long$m0_edad, "18:24='Joven'; 25:54='Adulto Joven';55:64='Adulto';65:75='Adulto Mayor'")
+#frecuencia de conflictividad vecinal
+els_long$conflic <-  with(els_long,c(t11_01+t11_02+t11_03+t11_04)/4)
 
+els_long$conflic_rec <- factor(with(els_long, case_when(conflic == 1 ~ 3,
+                                                        conflic < 3 ~ 2,
+                                                        conflic <= 5 ~ 1)),
+                                        labels = c('Muchas veces o siempre', 'Pocas o algunas veces','Nunca' ))
+
+#Recode estatus social subjetivo
+els_long$estatus<- factor(car::recode(els_long$d01_01, "0:4=1;5=2;6:10=3"),
+                          labels = c('Bajo','Medio','Alto'))                          
+attr(els_long$estatus, which = 'label') <- 'Estatus Social Subjetivo'
+sjmisc::frq(els_long$estatus)
+
+
+els_long$edad <- factor(car::recode(els_long$m0_edad, "18:29=1;30:49=2;50:64=3;65:150=4"),
+                           labels = c('18-29', '30-49', '50-64', '65 o más'))
+attr(els_long$edad, which = 'label') <- 'Tramo de edad'
+
+
+
+#Recode reputación barrial
+els_long$reputacion <- car::recode(els_long$t08, "c(1,2)=1;c(3)=2;c(4,5)=3")
+els_long$reputacion <- factor(els_long$reputacion, 
+                            labels = c("Estigmatizado","Ni Estigmatizado Ni Prestigioso", "Prestigioso"))
+attr(els_long$reputacion, which = 'label') <- 'Reputación Barrial'
+sjmisc::frq(els_long$reputacion)
+
+#Recode educación
+els_long$educacion <- car::recode(els_long$m01,"c(1,2,3)=1;c(4,5)=2;c(6,7)=3;c(8,9,10)=4")
+els_long$educacion <- factor(els_long$educacion,labels = c("Basica","Media","Tecnica","Universitaria"))
+
+els_long$educacion <- sjlabelled::set_label(els_long$educacion, label = c("Nivel Educacional"))
+els_long$educacion <- sjlabelled::set_labels(els_long$educacion, labels = c("Basica", "Media", "Tecnica", "Universitaria"))
+sjmisc::frq(els_long$educacion)
+
+#Recode edad
+els_long$edad <- factor(car::recode(els_long$m0_edad, "18:29=1;30:49=2;50:64=3;65:150=4"),
+                           labels = c('18-29', '30-49', '50-64', '65 o más'))
+attr(els_long$edad, which = 'label') <- 'Tramo de edad'
+
+els_long$edad <- sjlabelled::set_label(els_long$edad, label = c("Edad en Tramos"))
+els_long$edad <- sjlabelled::set_labels(els_long$edad, labels = c("18 a 29", "30 a 49", "50 a 64", " 65 o mas"))
+sjmisc::frq(els_long$edad)
+
+#Recode estrato/ciudad
+els_long$estrato <- factor(els_long$estrato, 
+                             levels = c(1,2,3,4,5,6),
+                             labels = c('Gran Santiago', 'Gran Valparaíso', 'Gran Concepción', 'Ciudades grandes', 'Ciudades medianas', 'Ciudades pequeñas'))
+
+els_long$estrato <- sjlabelled::set_label(els_long$estrato, label = c("Estrato Muestral"))
+sjmisc::frq(els_long$estrato)
 ```
 
-```{r Analisis de Trayectorias}
-#Generación de trayectorias
-el_wide$estatus_tray<-paste0(el_wide$estatus1,el_wide$estatus2,el_wide$estatus3,el_wide$estatus4)
-els_long$estatus_tray<-paste0(els_long$estatus)
+```{r}
+#------F RECODiFiCACION ZONA GEOGRAFICA-------------------------
+els_long$zona  <- car::recode(els_long$region,"c('Tarapaca','Antofagasta','Atacama','Coquimbo','Arica')= 1;c('Valparaiso','Lib. Gral. B. Ohiggins','B. Ohiggins', 'Maule','Bio Bio')= 2;c('Araucania','Los Lagos','Aysen','Magallanes','Los Rios')=3 ;'Metropolitana'= 4")
+els_long$zona  <- factor(els_long$zona,levels=c("1","2","3","4"),
+                            labels = c("Norte","Centro","Sur","Metropolitana"))
+#------F.1 ATRIBUTOS ZONA--------
+els_long$zona <- sjlabelled::set_label(els_long$zona, label = c("Zona Geográfica"))
+els_long$zona <- sjlabelled::set_labels(els_long$zona, labels = c("Norte", "Centro", "Sur", "Metropolitana"))
 
-frq(els_long$estatus_tray, sort.frq = "desc")
+els_long$ola <- sjlabelled::set_labels(els_long$ola, 
+                                        labels = c("2016","2017","2018","2019"))
+
+attr(els_long$ola, which = 'label') <- 'Ola de encuesta'
+sjmisc::frq(els_long$ola)
 ```
+
+```{r}
+save(els_long,file = "../1_input/data/processed/els_long.RData")
+```
+
+
+
+
 

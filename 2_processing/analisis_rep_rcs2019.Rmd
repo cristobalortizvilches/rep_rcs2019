@@ -1,0 +1,123 @@
+---
+title: "Código de Análisis de Datos RepCS4"
+author: "Cristóbal Ortiz"
+date: "22-05-2021"
+output: html_document
+---
+```{r}
+pacman::p_load(sticky,
+               ggplot2,
+               ggalluvial)
+
+#remove(list = ls())
+```
+
+```{r}
+load("../1_input/data/processed/els_long.RData")
+load("../1_input/data/processed/funciones_a_usar.RData")
+
+elsoc_panel_m1 <- els_long
+```
+
+#1. Sociabilidad Barrial
+
+```{r , fig.align='center', fig.cap='9.1 Sociabilidad Barrial, según ola de estudio'}
+g9.1 <- gr.bar.freq("soc_rec", var_x= "ola",limits_y = c(0,1), posicion = 'stack')
+g9.1
+```
+
+```{r soc-barrio-alta, fig.align='center', fig.cap='cambios en Sociabilidad Barrial, según ola de estudio. Porcentaje con sociabilidad barrial "Alta".'}
+g9.2 <- gr.alluvial.freq('soc_rec', data = subset(elsoc_panel_m1, ola == 1 | ola == 4))
+g9.2
+```
+
+```{r soc-alta-zona, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona geográfica'}
+g9.3 <- gr.bar.freq.rec("soc_rec", var_x = "zona", var_z = 'ola',
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alta', limits_y = c(0,.8))
+g9.3
+```
+
+```{r soc-barrio-resi, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia'}
+g9.4 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
+                data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & (estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
+g9.4
+```
+
+```{r soc-alta-resid, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia"'}
+g9.5 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
+                data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & !(estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
+g9.5
+```
+
+```{r socalta-quintil, fig.align='center', fig.cap='Porcentaje con Índice de Sociabilidad Barrial "Alta", según ola de estudio y quintil de ingresos del hogar'}
+g9.6 <- gr.bar.freq.rec("soc_rec", var_x = "quintil", var_z = 'ola', 
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alta', limits_y = c(0,.8))
+g9.6
+```
+
+2. Conflictividad Barrial
+
+```{r confl-total, fig.align='center', fig.cap='¿Con qué frecuencia usted/alguien de su hogar se ha molestado o incomodado por problemas con sus vecinos? según ola de estudio '}
+g8.1 <- gr.bar.freq('conflic_rec', posicion = 'stack', colores = c(0,.85,1))
+g8.1 
+```
+
+```{r conf-cambios, fig.align='center', fig.cap='Cambios en frecuencia de conflictos barriables'}
+g8.2 <- gr.alluvial.freq('conflic_rec', data = subset(elsoc_panel_m1, ola == 1 | ola == 4), colores = c(0,.85,1))
+g8.2 
+```
+
+```{r conf-wav-zon, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y zona geográfica. Porcentaje con conflictos barriables "Siempre" o "Muchas veces"'}
+g8.3 <- gr.bar.freq.rec("conflic_rec", var_x = "zona", var_z = 'ola', REC = 'Muchas veces o siempre',
+                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .4)) 
+g8.3 
+```
+
+```{r conf-resid, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y zona de residencia. Porcentaje con conflictos barriables "Siempre" o "Muchas veces".'}
+g8.4 <- gr.bar.freq.rec("conflic_rec", var_x = "estrato", var_z = 'ola', REC = 'Muchas veces o siempre',
+                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .4)) 
+g8.4 
+```
+
+```{r conf-incomeq, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y quintiles de ingreso. Porcentaje con conflictos barriables "Siempre" o "Muchas veces".'}
+g8.5 <- gr.bar.freq.rec("conflic_rec", var_x = "estatus", var_z = 'ola', REC = 'Muchas veces o siempre',
+                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .4)) 
+g8.5
+ 
+```
+#3. Sentido de Pertenencia al Barrio
+
+```{r , fig.align='center', fig.cap='9.1 Sociabilidad Barrial, según ola de estudio'}
+g.spb1 <- gr.bar.freq("spb_rec", var_x= "ola",limits_y = c(0,1), posicion = 'stack')
+g.spb1
+```
+
+```{r soc-barrio-alta, fig.align='center', fig.cap='cambios en Sociabilidad Barrial, según ola de estudio. Porcentaje con sociabilidad barrial "Alta".'}
+g.spb2 <- gr.alluvial.freq('soc_rec', data = subset(elsoc_panel_m1, ola == 1 | ola == 4))
+g.spb2
+```
+
+```{r soc-alta-zona, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona geográfica'}
+g.spb3 <- gr.bar.freq.rec("soc_rec", var_x = "zona", var_z = 'ola',
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alta', limits_y = c(0,.8))
+g.spb3
+```
+
+```{r soc-barrio-resi, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia'}
+g.spb4 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
+                data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & (estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
+g.spb4
+```
+
+```{r soc-alta-resid, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia"'}
+g.spb5 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
+                data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & !(estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
+g.spb5
+```
+
+```{r socalta-quintil, fig.align='center', fig.cap='Porcentaje con Índice de Sociabilidad Barrial "Alta", según ola de estudio y quintil de ingresos del hogar'}
+g.spb6 <- gr.bar.freq.rec("soc_rec", var_x = "estatus", var_z = 'ola', 
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alta', limits_y = c(0,.8))
+g.spb6
+```
+
