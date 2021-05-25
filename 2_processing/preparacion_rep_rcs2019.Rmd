@@ -15,6 +15,7 @@ pacman::p_load(car,
                stargazer,
                tidyverse,
                panelr)
+remove(list = ls())
 ```
 
 ```{r Cargar base de datos}
@@ -159,11 +160,10 @@ sjmisc::frq(els_long$estrato)
 ```
 
 ```{r}
-#------F RECODiFiCACION ZONA GEOGRAFICA-------------------------
 els_long$zona  <- car::recode(els_long$region,"c('Tarapaca','Antofagasta','Atacama','Coquimbo','Arica')= 1;c('Valparaiso','Lib. Gral. B. Ohiggins','B. Ohiggins', 'Maule','Bio Bio')= 2;c('Araucania','Los Lagos','Aysen','Magallanes','Los Rios')=3 ;'Metropolitana'= 4")
 els_long$zona  <- factor(els_long$zona,levels=c("1","2","3","4"),
                             labels = c("Norte","Centro","Sur","Metropolitana"))
-#------F.1 ATRIBUTOS ZONA--------
+
 els_long$zona <- sjlabelled::set_label(els_long$zona, label = c("Zona Geográfica"))
 els_long$zona <- sjlabelled::set_labels(els_long$zona, labels = c("Norte", "Centro", "Sur", "Metropolitana"))
 

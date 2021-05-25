@@ -4,120 +4,207 @@ author: "Cristóbal Ortiz"
 date: "22-05-2021"
 output: html_document
 ---
-```{r}
-pacman::p_load(sticky,
-               ggplot2,
-               ggalluvial)
 
-#remove(list = ls())
+```{r Librerías}
+pacman::p_load(dplyr,
+               sticky,
+               ggplot2,
+               ggalluvial,
+               car,
+               lmtest,
+               panelView,
+               plm,
+               pglm,
+               sjmisc,
+               sjPlot,
+               stargazer,
+               tidyverse,
+               panelr,
+               kableExtra)
+
+
 ```
 
-```{r}
-load("../1_input/data/processed/els_long.RData")
-load("../1_input/data/processed/funciones_a_usar.RData")
+```{r BBDD y Funciones}
+load("../1_input/data/processed/els_long.RData") #cargar bbdd
+load("../1_input/data/processed/funciones_a_usar.RData") #cargar funciones
 
 elsoc_panel_m1 <- els_long
 ```
 
 #1. Sociabilidad Barrial
 
-```{r , fig.align='center', fig.cap='9.1 Sociabilidad Barrial, según ola de estudio'}
-g9.1 <- gr.bar.freq("soc_rec", var_x= "ola",limits_y = c(0,1), posicion = 'stack')
-g9.1
+```{r Sociabilidad según ola, fig.align='center', fig.cap='9.1 Sociabilidad Barrial, según ola de estudio'}
+g.soc.1 <- gr.bar.freq("soc_rec", var_x= "ola",limits_y = c(0,1), posicion = 'stack')
+g.soc.1
 ```
 
-```{r soc-barrio-alta, fig.align='center', fig.cap='cambios en Sociabilidad Barrial, según ola de estudio. Porcentaje con sociabilidad barrial "Alta".'}
-g9.2 <- gr.alluvial.freq('soc_rec', data = subset(elsoc_panel_m1, ola == 1 | ola == 4))
-g9.2
+```{r Sociabilidad cambios de frecuencia, fig.cap='cambios en Sociabilidad Barrial', fig.align='center'}
+g.soc.2 <- gr.alluvial.freq('soc_rec', data = subset(els_long, ola == 1 | ola == 4))
+g.soc.2
 ```
 
-```{r soc-alta-zona, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona geográfica'}
-g9.3 <- gr.bar.freq.rec("soc_rec", var_x = "zona", var_z = 'ola',
+```{r Intento de Alluvial}
+ggplot(els_long,
+       aes(x = ola, stratum = soc_rec, alluvium = idencuesta,
+           y = soc_rec,
+           fill = soc_rec, label = soc_rec)) +
+  geom_stratum()+
+  geom_flow() +  
+  geom_text(stat = "stratum", size = 3) +
+  theme(legend.position = "none") +
+  ggtitle("Cambios en frecuencia de Sociabilidad Barrial")
+```
+
+```{r Sociabilidad alta según Macrozona, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona geográfica'}
+g.soc.3 <- gr.bar.freq.rec("soc_rec", var_x = "zona", var_z = 'ola',
                         data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alta', limits_y = c(0,.8))
-g9.3
+g.soc.3
 ```
 
-```{r soc-barrio-resi, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia'}
-g9.4 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
+```{r Sociabilidad alta según tipo de gran ciudad , fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia'}
+g.soc.4 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
                 data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & (estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
-g9.4
+g.soc.4
 ```
-
-```{r soc-alta-resid, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia"'}
-g9.5 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
+```{r Socibilidad alta según tipo de ciudad, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia"'}
+g.soc.5 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
                 data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & !(estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
-g9.5
+g.soc.5
 ```
 
-```{r socalta-quintil, fig.align='center', fig.cap='Porcentaje con Índice de Sociabilidad Barrial "Alta", según ola de estudio y quintil de ingresos del hogar'}
-g9.6 <- gr.bar.freq.rec("soc_rec", var_x = "quintil", var_z = 'ola', 
+```{r Sociabilidad alta según estatus social, fig.align='center', fig.cap='Porcentaje con Índice de Sociabilidad Barrial "Alta", según ola de estudio y Estatus social subjetivo '}
+g.soc.6 <- gr.bar.freq.rec("soc_rec", var_x = "estatus", var_z = 'ola', 
                         data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alta', limits_y = c(0,.8))
-g9.6
+g.soc.6
 ```
 
-2. Conflictividad Barrial
+#2. Conflictividad Barrial
 
-```{r confl-total, fig.align='center', fig.cap='¿Con qué frecuencia usted/alguien de su hogar se ha molestado o incomodado por problemas con sus vecinos? según ola de estudio '}
-g8.1 <- gr.bar.freq('conflic_rec', posicion = 'stack', colores = c(0,.85,1))
-g8.1 
+```{r Conflictividad según ola, fig.align='center', fig.cap='¿Con qué frecuencia usted/alguien de su hogar se ha molestado o incomodado por problemas con sus vecinos? según ola de estudio '}
+g.conf.1 <- gr.bar.freq('conflic_rec', posicion = 'stack', colores = c(0,.85,1))
+g.conf.1 
 ```
 
-```{r conf-cambios, fig.align='center', fig.cap='Cambios en frecuencia de conflictos barriables'}
-g8.2 <- gr.alluvial.freq('conflic_rec', data = subset(elsoc_panel_m1, ola == 1 | ola == 4), colores = c(0,.85,1))
-g8.2 
+```{r Conflictividad cambios de frecuencia, fig.align='center', fig.cap='Cambios en frecuencia de conflictos barriables'}
+g.conf.2 <- gr.alluvial.freq('conflic_rec', data = subset(elsoc_panel_m1, ola == 1 | ola == 4), colores = c(0,.85,1))
+g.conf.2 
 ```
 
-```{r conf-wav-zon, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y zona geográfica. Porcentaje con conflictos barriables "Siempre" o "Muchas veces"'}
-g8.3 <- gr.bar.freq.rec("conflic_rec", var_x = "zona", var_z = 'ola', REC = 'Muchas veces o siempre',
-                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .4)) 
-g8.3 
+```{r Conflictividad alta según macrozona, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y zona geográfica. Porcentaje con conflictos barriables "Siempre" o "Muchas veces"'}
+g.conf.3 <- gr.bar.freq.rec("conflic_rec", var_x = "zona", var_z = 'ola', REC = 'Muchas veces o siempre',
+                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .25)) 
+g.conf.3 
 ```
 
-```{r conf-resid, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y zona de residencia. Porcentaje con conflictos barriables "Siempre" o "Muchas veces".'}
-g8.4 <- gr.bar.freq.rec("conflic_rec", var_x = "estrato", var_z = 'ola', REC = 'Muchas veces o siempre',
-                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .4)) 
-g8.4 
+```{r Conflictividad alta según tipo de ciudad, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y zona de residencia. Porcentaje con conflictos barriables "Siempre" o "Muchas veces".'}
+g.conf.4 <- gr.bar.freq.rec("conflic_rec", var_x = "estrato", var_z = 'ola', REC = 'Muchas veces o siempre',
+                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .25)) 
+g.conf.4 
 ```
 
-```{r conf-incomeq, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y quintiles de ingreso. Porcentaje con conflictos barriables "Siempre" o "Muchas veces".'}
-g8.5 <- gr.bar.freq.rec("conflic_rec", var_x = "estatus", var_z = 'ola', REC = 'Muchas veces o siempre',
-                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .4)) 
-g8.5
+```{r Conflictividad alta según estatus subjetivo, fig.align='center', fig.cap='Porcentaje con alta frecuencia de conflictos barriales, según ola del estudio y estatus social subjetivo. Porcentaje con conflictos barriables "Siempre" o "Muchas veces".'}
+g.conf.5 <- gr.bar.freq.rec("conflic_rec", var_x = "estatus", var_z = 'ola', REC = 'Muchas veces o siempre',
+                data = subset(elsoc_panel_m1, ola == 1 | ola == 4), limits_y = c(0, .25)) 
+g.conf.5
  
 ```
-#3. Sentido de Pertenencia al Barrio
 
-```{r , fig.align='center', fig.cap='9.1 Sociabilidad Barrial, según ola de estudio'}
-g.spb1 <- gr.bar.freq("spb_rec", var_x= "ola",limits_y = c(0,1), posicion = 'stack')
-g.spb1
+#3. Sentido de Pertenencia al Barrio o Apego Barrial
+
+```{r Apego barrial según ola, fig.align='center', fig.cap='9.1 Apego Barrial, según ola de estudio'}
+g.spb.1 <- gr.bar.freq("spb_rec", var_x= "ola",limits_y = c(0,1), posicion = 'stack')
+g.spb.1
 ```
 
-```{r soc-barrio-alta, fig.align='center', fig.cap='cambios en Sociabilidad Barrial, según ola de estudio. Porcentaje con sociabilidad barrial "Alta".'}
-g.spb2 <- gr.alluvial.freq('soc_rec', data = subset(elsoc_panel_m1, ola == 1 | ola == 4))
-g.spb2
+```{r Apego barrial según cambios de frecuencia, fig.align='center', fig.cap='cambios en Apego Barrial, según ola de estudio. Porcentaje con Apego Barrial "Alta".'}
+class(els_long$ola)
+els_long$ola <- as.factor(els_long$ola) 
+g.spb.2 <- gr.alluvial.freq('spb_rec', data = subset(elsoc_panel_m1, ola == 1 | ola == 4))
+g.spb.2
 ```
 
-```{r soc-alta-zona, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona geográfica'}
-g.spb3 <- gr.bar.freq.rec("soc_rec", var_x = "zona", var_z = 'ola',
-                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alta', limits_y = c(0,.8))
-g.spb3
+```{r Apego barrial según macrozona, fig.align='center', fig.cap='Porcentaje de Apego Barrial "Muy Alto", según ola de estudio y zona geográfica'}
+g.spb.3 <- gr.bar.freq.rec("spb_rec", var_x = "zona", var_z = 'ola',
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alto', limits_y = c(0,.8))
+g.spb.3
 ```
 
-```{r soc-barrio-resi, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia'}
-g.spb4 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
+```{r Apego barrial según tipo de ciudad grande, fig.align='center', fig.cap='Porcentaje de Apego Barrial "Muy Alto", según ola de estudio y zona de residencia'}
+g.spb.4 <- gr.bar.freq.rec("spb_rec", var_x = "estrato", var_z = 'ola', REC = 'Alto', limits_y = c(0,.8),
                 data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & (estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
-g.spb4
+g.spb.4
 ```
 
-```{r soc-alta-resid, fig.align='center', fig.cap='Porcentaje de Sociabilidad Barrial "Alta", según ola de estudio y zona de residencia"'}
-g.spb5 <- gr.bar.freq.rec("soc_rec", var_x = "estrato", var_z = 'ola', REC = 'Alta', limits_y = c(0,.8),
+```{r Apego barrial según tipo de ciudad, fig.align='center', fig.cap='Porcentaje de Apego Barrial "Muy Alto", según ola de estudio y zona de residencia"'}
+g.spb.5 <- gr.bar.freq.rec("spb_rec", var_x = "estrato", var_z = 'ola', REC = 'Alto', limits_y = c(0,.8),
                 data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & !(estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
-g.spb5
+g.spb.5
 ```
 
-```{r socalta-quintil, fig.align='center', fig.cap='Porcentaje con Índice de Sociabilidad Barrial "Alta", según ola de estudio y quintil de ingresos del hogar'}
-g.spb6 <- gr.bar.freq.rec("soc_rec", var_x = "estatus", var_z = 'ola', 
-                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alta', limits_y = c(0,.8))
-g.spb6
+```{r Apego barrial según estatus subjetivo, fig.align='center', fig.cap='Porcentaje de Apego Barrial "Muy Alto", según ola de estudio y Estatus social subjetivo '}
+g.spb.6 <- gr.bar.freq.rec("spb_rec", var_x = "estatus", var_z = 'ola', 
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alto', limits_y = c(0,.8))
+g.spb.6
 ```
 
+```{r Apego barrial según grupo etario, fig.align='center', fig.cap='Porcentaje de Apego Barrial "Muy Alto", según ola de estudio y Grupo etario '}
+g.spb.7 <- gr.bar.freq.rec("spb_rec", var_x = "edad", var_z = 'ola', 
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alto', limits_y = c(0,.8))
+g.spb.7
+```
+
+```{r Apego barrial según educación, fig.align='center', fig.cap='Porcentaje de Apego Barrial "Muy Alto", según ola de estudio y Nivel de educación '}
+g.spb.8 <- gr.bar.freq.rec("spb_rec", var_x = "educacion", var_z = 'ola', 
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alto', limits_y = c(0,.8))
+g.spb.8
+```
+
+```{r Apego barrial según reputación barrial, fig.align='center', fig.cap='Porcentaje de Apego Barrial "Muy Alto", según ola de estudio y Reputación barrial'}
+g.spb.9 <- gr.bar.freq.rec("spb_rec", var_x = "reputacion", var_z = 'ola', 
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Alto', limits_y = c(0,.8))
+g.spb.9
+```
+
+#4. Reputación Barrial
+
+```{r Reputación barrial según ola, fig.align='center', fig.cap='9.1 Reputación Barrial, según ola de estudio'}
+g.repb.1 <- gr.bar.freq("reputacion", var_x= "ola",limits_y = c(0,1), posicion = 'stack')
+g.repb.1
+```
+
+```{r Reputación barrial según cambios de frecuencia, fig.align='center', fig.cap='cambios en Reputación Barrial, según ola de estudio. Porcentaje con Reputación Barrial "Alta".'}
+g.repb.2 <- gr.alluvial.freq('reputacion', data = subset(elsoc_panel_m1, ola == 1 | ola == 4))
+g.repb.2
+```
+
+```{r Reputación barrial según macrozona, fig.align='center', fig.cap='Porcentaje de Reputación Barrial "Alta", según ola de estudio y zona geográfica'}
+g.repb.3 <- gr.bar.freq.rec("reputacion", var_x = "zona", var_z = 'ola',
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Estigmatizado', limits_y = c(0,.4))
+g.repb.3
+```
+
+```{r Reputación barrial según tipo de ciudad grande, fig.align='center', fig.cap='Porcentaje de Reputación Barrial "Alta", según ola de estudio y zona de residencia'}
+g.repb.4 <- gr.bar.freq.rec("reputacion", var_x = "estrato", var_z = 'ola', REC = 'Estigmatizado', limits_y = c(0,.4),
+                data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & (estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
+g.repb.4
+```
+
+```{r Reputación barrial según tipo de ciudad, fig.align='center', fig.cap='Porcentaje de Reputación Barrial "Alta", según ola de estudio y zona de residencia"'}
+g.repb.5 <- gr.bar.freq.rec("reputacion", var_x = "estrato", var_z = 'ola', REC = 'Estigmatizado', limits_y = c(0,.4),
+                data = subset(elsoc_panel_m1, (ola == 1 | ola == 4) & !(estrato == 'Gran Santiago' | estrato == 'Gran Valparaíso' | estrato == 'Gran Concepción')))
+g.repb.5
+```
+
+```{r Reputación barrial según estatus social subjetivo, fig.align='center', fig.cap='Porcentaje con Índice de Reputación Barrial "Alta", según ola de estudio y Estatus social subjetivo'}
+g.repb.6 <- gr.bar.freq.rec("reputacion", var_x = "estatus", var_z = 'ola', 
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Estigmatizado', limits_y = c(0,.5))
+g.repb.6
+```
+
+
+```{r Reputación barrial según nivel de educación, fig.align='center', fig.cap='Porcentaje con Índice de Reputación Barrial "Alta", según ola de estudio y Estatus social subjetivo '}
+g.repb.7 <- gr.bar.freq.rec("reputacion", var_x = "educacion", var_z = 'ola', 
+                        data = subset(elsoc_panel_m1, ola == 1 | ola == 4), REC = 'Estigmatizado', limits_y = c(0,.5))
+g.repb.7
+```
